@@ -32,6 +32,11 @@ class SocketHandlers {
         console.log(`📊 Client ${socket.id} joined analytics room`);
       });
 
+      socket.on('join-exports', () => {
+        socket.join('exports');
+        console.log(`📤 Client ${socket.id} joined exports room`);
+      });
+
       socket.on('request-analytics', async () => {
         try {
           const metrics = await AnalyticsService.getTaskMetrics();
@@ -88,6 +93,39 @@ class SocketHandlers {
       type,
       timestamp: new Date().toISOString()
     });
+  }
+
+  /**
+   * Broadcasts export updates to all connected clients in exports room
+   * @param {string} status - Export status (processing, completed, failed)
+   * @param {Object} exportJob - Export job data
+   * @param {Object} [metadata={}] - Additional metadata (progress, etc.)
+   */
+  broadcastExportUpdate(status, exportJob, metadata = {}) {
+    const updateData = {
+      exportId: exportJob._id,
+      status,
+      format: exportJob.format,
+      recordCount: exportJob.recordCount,
+      timestamp: new Date().toISOString(),
+      ...metadata
+    };
+
+    // Send to exports room for detailed updates
+    this.io.to('exports').emit('export-update', updateData);
+
+    // Send notification to all clients for important status changes
+    if (status === 'completed') {
+      this.broadcastNotification(
+        `✅ Export completed: ${exportJob.recordCount} records exported as ${exportJob.format.toUpperCase()}`,
+        'success'
+      );
+    } else if (status === 'failed') {
+      this.broadcastNotification(
+        `❌ Export failed: ${exportJob.error || 'Unknown error'}`,
+        'error'
+      );
+    }
   }
 
   /**

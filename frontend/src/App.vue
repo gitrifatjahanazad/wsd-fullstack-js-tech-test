@@ -50,6 +50,7 @@
     </v-main>
 
     <connection-status />
+    <export-progress-banner />
 
     <notification-drawer
       v-model="showNotifications"
@@ -79,12 +80,15 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useTheme } from 'vuetify'
 import { useAnalyticsStore } from './stores/analyticsStore.js'
 import { useTaskStore } from './stores/taskStore.js'
+import { useExportStore } from './stores/exportStore.js'
 import ConnectionStatus from './components/ConnectionStatus.vue'
 import NotificationDrawer from './components/NotificationDrawer.vue'
+import ExportProgressBanner from './components/ExportProgressBanner.vue'
 
 const theme = useTheme()
 const analyticsStore = useAnalyticsStore()
 const taskStore = useTaskStore()
+const exportStore = useExportStore()
 
 const drawer = ref(false)
 const showNotifications = ref(false)
@@ -92,7 +96,8 @@ const showNotifications = ref(false)
 const menuItems = [
   { title: 'Dashboard', icon: 'mdi-view-dashboard', to: '/' },
   { title: 'Tasks', icon: 'mdi-format-list-checks', to: '/tasks' },
-  { title: 'Analytics', icon: 'mdi-chart-line', to: '/analytics' }
+  { title: 'Analytics', icon: 'mdi-chart-line', to: '/analytics' },
+  { title: 'Exports', icon: 'mdi-download', to: '/exports' }
 ]
 
 const themeIcon = computed(() =>
@@ -124,6 +129,7 @@ function removeNotification(id) {
 onMounted(() => {
   analyticsStore.initializeSocketListeners()
   taskStore.initializeSocketListeners()
+  exportStore.initializeSocketListeners()
   analyticsStore.connect()
   analyticsStore.fetchAnalytics()
 })
@@ -131,6 +137,7 @@ onMounted(() => {
 onUnmounted(() => {
   analyticsStore.cleanup()
   taskStore.cleanup()
+  exportStore.cleanup()
   analyticsStore.disconnect()
 })
 </script>

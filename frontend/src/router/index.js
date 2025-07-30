@@ -7,6 +7,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 import Dashboard from '../views/Dashboard.vue'
 import Tasks from '../views/Tasks.vue'
 import Analytics from '../views/Analytics.vue'
+import Exports from '../views/Exports.vue'
 
 /**
  * Application route definitions
@@ -28,6 +29,11 @@ const routes = [
     path: '/analytics',
     name: 'Analytics',
     component: Analytics
+  },
+  {
+    path: '/exports',
+    name: 'Exports',
+    component: Exports
   }
 ]
 

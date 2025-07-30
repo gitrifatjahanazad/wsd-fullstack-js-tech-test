@@ -27,6 +27,11 @@ export const useTaskStore = defineStore('tasks', () => {
   const filters = ref({
     status: '',
     priority: '',
+    search: '',
+    dateFrom: '',
+    dateTo: '',
+    completedDateFrom: '',
+    completedDateTo: '',
     sortBy: 'createdAt',
     sortOrder: 'desc'
   })

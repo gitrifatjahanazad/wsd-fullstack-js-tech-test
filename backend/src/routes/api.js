@@ -5,7 +5,9 @@
 
 import express from 'express';
 import Task from '../models/Task.js';
+import Export from '../models/Export.js';
 import AnalyticsService from '../services/analyticsService.js';
+import ExportService from '../services/exportService.js';
 import { redisClient } from '../config/redis.js';
 
 const router = express.Router();
@@ -35,6 +37,11 @@ export const setSocketHandlers = (handlers) => {
  * @param {number} [req.query.limit=10] - Number of tasks per page
  * @param {string} [req.query.status] - Filter by task status
  * @param {string} [req.query.priority] - Filter by task priority
+ * @param {string} [req.query.search] - Text search in title and description
+ * @param {string} [req.query.dateFrom] - Filter tasks created from date
+ * @param {string} [req.query.dateTo] - Filter tasks created to date
+ * @param {string} [req.query.completedDateFrom] - Filter tasks completed from date
+ * @param {string} [req.query.completedDateTo] - Filter tasks completed to date
  * @param {string} [req.query.sortBy=createdAt] - Field to sort by
  * @param {string} [req.query.sortOrder=desc] - Sort order (asc/desc)
  * @returns {Object} Paginated tasks with metadata
@@ -46,13 +53,56 @@ router.get('/tasks', async (req, res, next) => {
       limit = 10,
       status,
       priority,
+      search,
+      dateFrom,
+      dateTo,
+      completedDateFrom,
+      completedDateTo,
       sortBy = 'createdAt',
       sortOrder = 'desc'
     } = req.query;
 
     const query = {};
-    if (status) query.status = status;
-    if (priority) query.priority = priority;
+
+    // Status filter
+    if (status && status !== 'all') {
+      query.status = status;
+    }
+
+    // Priority filter
+    if (priority && priority !== 'all') {
+      query.priority = priority;
+    }
+
+    // Text search filter
+    if (search) {
+      query.$or = [
+        { title: { $regex: search, $options: 'i' } },
+        { description: { $regex: search, $options: 'i' } }
+      ];
+    }
+
+    // Date range filters
+    if (dateFrom || dateTo) {
+      query.createdAt = {};
+      if (dateFrom) {
+        query.createdAt.$gte = new Date(dateFrom);
+      }
+      if (dateTo) {
+        query.createdAt.$lte = new Date(dateTo);
+      }
+    }
+
+    // Completed date range filters
+    if (completedDateFrom || completedDateTo) {
+      query.completedAt = {};
+      if (completedDateFrom) {
+        query.completedAt.$gte = new Date(completedDateFrom);
+      }
+      if (completedDateTo) {
+        query.completedAt.$lte = new Date(completedDateTo);
+      }
+    }
 
     const sort = {};
     sort[sortBy] = sortOrder === 'desc' ? -1 : 1;
@@ -61,6 +111,7 @@ router.get('/tasks', async (req, res, next) => {
       .sort(sort)
       .limit(limit * 1)
       .skip((page - 1) * limit)
+      .lean() // Use lean queries for better performance
       .exec();
 
     const total = await Task.countDocuments(query);
@@ -74,6 +125,15 @@ router.get('/tasks', async (req, res, next) => {
           limit: parseInt(limit),
           total,
           pages: Math.ceil(total / limit)
+        },
+        filters: {
+          status,
+          priority,
+          search,
+          dateFrom,
+          dateTo,
+          completedDateFrom,
+          completedDateTo
         }
       }
     });
@@ -260,6 +320,132 @@ router.get('/analytics', async (req, res, next) => {
       data: metrics
     });
   } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * POST /exports - Create a new export job
+ * @name CreateExport
+ * @function
+ * @param {Object} req.body - Export options
+ * @param {string} req.body.format - Export format ('csv' or 'json')
+ * @param {Object} [req.body.filters] - Filters to apply
+ * @returns {Object} Created export job
+ */
+router.post('/exports', async (req, res, next) => {
+  try {
+    const { format, filters = {} } = req.body;
+
+    if (!format || !['csv', 'json'].includes(format)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid export format. Must be "csv" or "json"'
+      });
+    }
+
+    // Check for cached export
+    const cachedExport = await ExportService.getCachedExport(filters, format);
+    if (cachedExport) {
+      return res.json({
+        success: true,
+        data: cachedExport,
+        message: 'Export retrieved from cache'
+      });
+    }
+
+    // Create new export
+    const exportJob = await ExportService.createExport({ format, filters }, socketHandlers);
+
+    res.status(201).json({
+      success: true,
+      data: exportJob,
+      message: 'Export job created successfully'
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * GET /exports - Get export history with pagination
+ * @name GetExports
+ * @function
+ * @param {Object} req.query - Query parameters
+ * @param {number} [req.query.page=1] - Page number
+ * @param {number} [req.query.limit=10] - Items per page
+ * @returns {Object} Paginated export history
+ */
+router.get('/exports', async (req, res, next) => {
+  try {
+    const { page = 1, limit = 10 } = req.query;
+
+    const result = await ExportService.getExportHistory({ page, limit });
+
+    res.json({
+      success: true,
+      data: result
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * GET /exports/:id - Get specific export details
+ * @name GetExport
+ * @function
+ * @param {string} req.params.id - Export ID
+ * @returns {Object} Export details
+ */
+router.get('/exports/:id', async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    const exportJob = await Export.findById(id);
+
+    if (!exportJob) {
+      return res.status(404).json({
+        success: false,
+        message: 'Export not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      data: exportJob
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * GET /exports/:id/download - Download export file
+ * @name DownloadExport
+ * @function
+ * @param {string} req.params.id - Export ID
+ * @returns {File} Export file download
+ */
+router.get('/exports/:id/download', async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    const fileInfo = await ExportService.getExportFile(id);
+
+    // Set appropriate headers
+    res.setHeader('Content-Type', fileInfo.format === 'csv' ? 'text/csv' : 'application/json');
+    res.setHeader('Content-Disposition', `attachment; filename="${fileInfo.fileName}"`);
+
+    // Send file
+    res.sendFile(fileInfo.filePath);
+  } catch (error) {
+    if (error.message === 'Export not found' || error.message === 'Export not completed' || error.message === 'Export file no longer available') {
+      return res.status(404).json({
+        success: false,
+        message: error.message
+      });
+    }
     next(error);
   }
 });

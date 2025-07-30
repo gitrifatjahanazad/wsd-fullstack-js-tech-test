@@ -168,6 +168,55 @@ class ApiClient {
   }
 
   /**
+   * Creates a new export job
+   * @async
+   * @param {Object} exportOptions - Export options
+   * @param {string} exportOptions.format - Export format ('csv' or 'json')
+   * @param {Object} exportOptions.filters - Filters to apply
+   * @returns {Promise<Object>} Export job response
+   */
+  async createExport(exportOptions) {
+    return this.post('/exports', exportOptions)
+  }
+
+  /**
+   * Retrieves export history with pagination
+   * @async
+   * @param {Object} [params={}] - Query parameters (page, limit)
+   * @returns {Promise<Object>} Paginated exports response
+   */
+  async getExports(params = {}) {
+    return this.get('/exports', params)
+  }
+
+  /**
+   * Retrieves a specific export by ID
+   * @async
+   * @param {string} id - Export ID
+   * @returns {Promise<Object>} Export data
+   */
+  async getExport(id) {
+    return this.get(`/exports/${id}`)
+  }
+
+  /**
+   * Downloads an export file
+   * @async
+   * @param {string} id - Export ID
+   * @returns {Promise<Blob>} Export file blob
+   */
+  async downloadExport(id) {
+    const url = `${this.baseURL}/exports/${id}/download`
+    const response = await fetch(url)
+
+    if (!response.ok) {
+      throw new Error(`Download failed: ${response.statusText}`)
+    }
+
+    return response.blob()
+  }
+
+  /**
    * Checks API health status
    * @async
    * @returns {Promise<Object>} Health check response

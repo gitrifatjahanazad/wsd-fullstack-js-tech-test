@@ -15,6 +15,7 @@ import apiRoutes, { setSocketHandlers } from './routes/api.js';
 import { errorHandler, notFound } from './middleware/errorHandler.js';
 import SocketHandlers from './sockets/socketHandlers.js';
 import AnalyticsService from './services/analyticsService.js';
+import ExportCleanupJob from './jobs/exportCleanup.js';
 
 dotenv.config();
 
@@ -111,6 +112,12 @@ const startServer = async () => {
         console.error('Error in metrics broadcast interval:', error);
       }
     }, 15000);
+
+    // Schedule export cleanup job (daily at 2 AM)
+    if (process.env.NODE_ENV === 'production') {
+      ExportCleanupJob.schedule({ intervalHours: 24, retentionDays: 7 });
+      console.log('🧹 Export cleanup job scheduled');
+    }
 
   } catch (error) {
     console.error('❌ Failed to start server:', error);

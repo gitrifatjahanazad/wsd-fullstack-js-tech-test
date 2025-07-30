@@ -20,46 +20,12 @@
       </v-btn>
     </div>
 
-    <v-card class="mb-4">
-      <v-card-text>
-        <v-row>
-          <v-col cols="12" md="3">
-            <v-select
-              v-model="filters.status"
-              :items="statusOptions"
-              label="Status"
-              clearable
-              @update:model-value="updateFilters"
-            ></v-select>
-          </v-col>
-          <v-col cols="12" md="3">
-            <v-select
-              v-model="filters.priority"
-              :items="priorityOptions"
-              label="Priority"
-              clearable
-              @update:model-value="updateFilters"
-            ></v-select>
-          </v-col>
-          <v-col cols="12" md="3">
-            <v-select
-              v-model="filters.sortBy"
-              :items="sortOptions"
-              label="Sort by"
-              @update:model-value="updateFilters"
-            ></v-select>
-          </v-col>
-          <v-col cols="12" md="3">
-            <v-select
-              v-model="filters.sortOrder"
-              :items="orderOptions"
-              label="Order"
-              @update:model-value="updateFilters"
-            ></v-select>
-          </v-col>
-        </v-row>
-      </v-card-text>
-    </v-card>
+    <advanced-task-filters
+      :filters="filters"
+      :has-data="taskStore.tasks.length > 0"
+      @filters-changed="handleFiltersChanged"
+      @export-requested="handleExportRequested"
+    />
 
     <div v-if="taskStore.loading" class="text-center py-8">
       <v-progress-circular indeterminate color="primary"></v-progress-circular>
@@ -164,11 +130,14 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, onUnmounted } from 'vue'
 import { useTaskStore } from '../stores/taskStore.js'
+import { useExportStore } from '../stores/exportStore.js'
 import TaskFormDialog from './TaskFormDialog.vue'
+import AdvancedTaskFilters from './AdvancedTaskFilters.vue'
 
 const taskStore = useTaskStore()
+const exportStore = useExportStore()
 
 const showCreateDialog = ref(false)
 const showEditDialog = ref(false)
@@ -178,6 +147,11 @@ const selectedTask = ref(null)
 const filters = reactive({
   status: '',
   priority: '',
+  search: '',
+  dateFrom: '',
+  dateTo: '',
+  completedDateFrom: '',
+  completedDateTo: '',
   sortBy: 'createdAt',
   sortOrder: 'desc'
 })
@@ -207,8 +181,20 @@ const orderOptions = [
   { title: 'Oldest First', value: 'asc' }
 ]
 
-function updateFilters() {
+function handleFiltersChanged(newFilters) {
+  Object.assign(filters, newFilters)
   taskStore.updateFilters(filters)
+}
+
+async function handleExportRequested({ format, filters: exportFilters }) {
+  try {
+    await exportStore.createExport({
+      format,
+      filters: exportFilters
+    })
+  } catch (error) {
+    console.error('Export failed:', error)
+  }
 }
 
 function editTask(task) {
@@ -276,5 +262,12 @@ function formatDate(date) {
 
 onMounted(() => {
   taskStore.fetchTasks()
+  taskStore.initializeSocketListeners()
+  exportStore.initializeSocketListeners()
+})
+
+onUnmounted(() => {
+  taskStore.cleanup()
+  exportStore.cleanup()
 })
 </script>
