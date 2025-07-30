@@ -12,12 +12,12 @@ const mockApiClient = {
   downloadExport: vi.fn()
 }
 
-// Mock Socket.IO
-const mockSocket = {
-  emit: vi.fn(),
-  on: vi.fn(),
-  off: vi.fn()
-}
+// Mock Socket.IO (available for future tests)
+// const mockSocket = {
+//   emit: vi.fn(),
+//   on: vi.fn(),
+//   off: vi.fn()
+// }
 
 describe('Export Workflow Core Functionality E2E', () => {
   beforeEach(() => {
@@ -120,12 +120,12 @@ describe('Export Workflow Core Functionality E2E', () => {
       status: 'pending'
     })
 
-    // Simulate real-time updates
-    const exportUpdateData = {
-      exportId: 'export123',
-      status: 'processing',
-      timestamp: new Date().toISOString()
-    }
+    // Simulate real-time updates (data structure for future use)
+    // const exportUpdateData = {
+    //   exportId: 'export123',
+    //   status: 'processing',
+    //   timestamp: new Date().toISOString()
+    // }
 
     // Test status message generation
     function getStatusMessage(status) {
@@ -155,7 +155,9 @@ describe('Export Workflow Core Functionality E2E', () => {
       timestamp: new Date().toISOString()
     }
 
-    expect(getStatusMessage(completionData.status)).toBe('Export completed successfully!')
+    expect(getStatusMessage(completionData.status)).toBe(
+      'Export completed successfully!'
+    )
     expect(completionData.recordCount).toBe(2)
   })
 
@@ -184,7 +186,9 @@ describe('Export Workflow Core Functionality E2E', () => {
       if (filters.dateFrom || filters.dateTo) {
         const dateRange = []
         if (filters.dateFrom) {
-          dateRange.push(`from ${new Date(filters.dateFrom).toLocaleDateString()}`)
+          dateRange.push(
+            `from ${new Date(filters.dateFrom).toLocaleDateString()}`
+          )
         }
         if (filters.dateTo) {
           dateRange.push(`to ${new Date(filters.dateTo).toLocaleDateString()}`)
@@ -196,20 +200,26 @@ describe('Export Workflow Core Functionality E2E', () => {
     }
 
     // Test various filter combinations
-    expect(formatFilters({
-      status: 'completed',
-      priority: 'high',
-      search: 'important task',
-      dateFrom: '2023-01-01',
-      dateTo: '2023-12-31'
-    })).toBe('Status: completed, Priority: high, Search: "important task", Created: from 1/1/2023 to 12/31/2023')
+    expect(
+      formatFilters({
+        status: 'completed',
+        priority: 'high',
+        search: 'important task',
+        dateFrom: '2023-01-01',
+        dateTo: '2023-12-31'
+      })
+    ).toBe(
+      'Status: completed, Priority: high, Search: "important task", Created: from 1/1/2023 to 12/31/2023'
+    )
 
     expect(formatFilters({})).toBe('No filters applied')
     expect(formatFilters(null)).toBe('No filters applied')
     expect(formatFilters(undefined)).toBe('No filters applied')
-    
+
     expect(formatFilters({ status: 'pending' })).toBe('Status: pending')
-    expect(formatFilters({ priority: 'low', search: 'test' })).toBe('Priority: low, Search: "test"')
+    expect(formatFilters({ priority: 'low', search: 'test' })).toBe(
+      'Priority: low, Search: "test"'
+    )
   })
 
   it('should handle offline export queueing workflow', async () => {
@@ -230,7 +240,8 @@ describe('Export Workflow Core Functionality E2E', () => {
         offlineQueue.push(queuedExport)
         return {
           ...queuedExport,
-          message: 'Export queued - will be processed when connection is restored'
+          message:
+            'Export queued - will be processed when connection is restored'
         }
       }
 
@@ -250,7 +261,7 @@ describe('Export Workflow Core Functionality E2E', () => {
             format: queuedExport.format,
             filters: queuedExport.filters
           })
-        } catch (error) {
+        } catch {
           // Re-queue failed exports
           offlineQueue.push(queuedExport)
         }
@@ -292,8 +303,18 @@ describe('Export Workflow Core Functionality E2E', () => {
       .mockResolvedValueOnce({
         data: {
           exports: [
-            { _id: 'export1', format: 'csv', status: 'completed', recordCount: 10 },
-            { _id: 'export2', format: 'json', status: 'processing', recordCount: 0 }
+            {
+              _id: 'export1',
+              format: 'csv',
+              status: 'completed',
+              recordCount: 10
+            },
+            {
+              _id: 'export2',
+              format: 'json',
+              status: 'processing',
+              recordCount: 0
+            }
           ],
           pagination: { page: 1, limit: 2, total: 5, pages: 3 }
         }
@@ -301,7 +322,12 @@ describe('Export Workflow Core Functionality E2E', () => {
       .mockResolvedValueOnce({
         data: {
           exports: [
-            { _id: 'export3', format: 'csv', status: 'completed', recordCount: 15 },
+            {
+              _id: 'export3',
+              format: 'csv',
+              status: 'completed',
+              recordCount: 15
+            },
             { _id: 'export4', format: 'json', status: 'failed', recordCount: 0 }
           ],
           pagination: { page: 2, limit: 2, total: 5, pages: 3 }
@@ -321,8 +347,14 @@ describe('Export Workflow Core Functionality E2E', () => {
 
     // Verify API calls
     expect(mockApiClient.getExports).toHaveBeenCalledTimes(2)
-    expect(mockApiClient.getExports).toHaveBeenNthCalledWith(1, { page: 1, limit: 2 })
-    expect(mockApiClient.getExports).toHaveBeenNthCalledWith(2, { page: 2, limit: 2 })
+    expect(mockApiClient.getExports).toHaveBeenNthCalledWith(1, {
+      page: 1,
+      limit: 2
+    })
+    expect(mockApiClient.getExports).toHaveBeenNthCalledWith(2, {
+      page: 2,
+      limit: 2
+    })
   })
 
   it('should categorize exports by status correctly', () => {
@@ -336,19 +368,23 @@ describe('Export Workflow Core Functionality E2E', () => {
     ]
 
     // Test export categorization
-    const activeExports = exports.filter(exp => 
+    const activeExports = exports.filter((exp) =>
       ['pending', 'processing'].includes(exp.status)
     )
-    const completedExports = exports.filter(exp => exp.status === 'completed')
-    const failedExports = exports.filter(exp => exp.status === 'failed')
+    const completedExports = exports.filter((exp) => exp.status === 'completed')
+    const failedExports = exports.filter((exp) => exp.status === 'failed')
 
     expect(activeExports).toHaveLength(3) // 2 pending + 1 processing
     expect(completedExports).toHaveLength(2)
     expect(failedExports).toHaveLength(1)
 
-    expect(activeExports.map(e => e.status)).toEqual(['pending', 'processing', 'pending'])
-    expect(completedExports.every(e => e.status === 'completed')).toBe(true)
-    expect(failedExports.every(e => e.status === 'failed')).toBe(true)
+    expect(activeExports.map((e) => e.status)).toEqual([
+      'pending',
+      'processing',
+      'pending'
+    ])
+    expect(completedExports.every((e) => e.status === 'completed')).toBe(true)
+    expect(failedExports.every((e) => e.status === 'failed')).toBe(true)
   })
 
   it('should validate task filtering parameters correctly', () => {
@@ -356,11 +392,17 @@ describe('Export Workflow Core Functionality E2E', () => {
     function validateFilters(filters) {
       const errors = []
 
-      if (filters.status && !['pending', 'in-progress', 'completed', 'all'].includes(filters.status)) {
+      if (
+        filters.status &&
+        !['pending', 'in-progress', 'completed', 'all'].includes(filters.status)
+      ) {
         errors.push('Invalid status filter')
       }
 
-      if (filters.priority && !['low', 'medium', 'high', 'all'].includes(filters.priority)) {
+      if (
+        filters.priority &&
+        !['low', 'medium', 'high', 'all'].includes(filters.priority)
+      ) {
         errors.push('Invalid priority filter')
       }
 
@@ -380,19 +422,31 @@ describe('Export Workflow Core Functionality E2E', () => {
     }
 
     // Test valid filters
-    expect(validateFilters({
-      status: 'completed',
-      priority: 'high',
-      search: 'test',
-      dateFrom: '2023-01-01',
-      dateTo: '2023-12-31'
-    })).toEqual([])
+    expect(
+      validateFilters({
+        status: 'completed',
+        priority: 'high',
+        search: 'test',
+        dateFrom: '2023-01-01',
+        dateTo: '2023-12-31'
+      })
+    ).toEqual([])
 
     // Test invalid filters
-    expect(validateFilters({ status: 'invalid' })).toContain('Invalid status filter')
-    expect(validateFilters({ priority: 'invalid' })).toContain('Invalid priority filter')
-    expect(validateFilters({ search: 'x'.repeat(101) })).toContain('Search query too long')
-    expect(validateFilters({ dateFrom: 'invalid-date' })).toContain('Invalid dateFrom format')
-    expect(validateFilters({ dateTo: 'invalid-date' })).toContain('Invalid dateTo format')
+    expect(validateFilters({ status: 'invalid' })).toContain(
+      'Invalid status filter'
+    )
+    expect(validateFilters({ priority: 'invalid' })).toContain(
+      'Invalid priority filter'
+    )
+    expect(validateFilters({ search: 'x'.repeat(101) })).toContain(
+      'Search query too long'
+    )
+    expect(validateFilters({ dateFrom: 'invalid-date' })).toContain(
+      'Invalid dateFrom format'
+    )
+    expect(validateFilters({ dateTo: 'invalid-date' })).toContain(
+      'Invalid dateTo format'
+    )
   })
 })

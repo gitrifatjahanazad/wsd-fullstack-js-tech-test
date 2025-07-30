@@ -107,13 +107,19 @@
               </v-btn>
             </template>
             <v-list>
-              <v-list-item @click="requestExport('csv')" data-testid="export-csv">
+              <v-list-item
+                data-testid="export-csv"
+                @click="requestExport('csv')"
+              >
                 <template #prepend>
                   <v-icon>mdi-file-delimited</v-icon>
                 </template>
                 <v-list-item-title>Export as CSV</v-list-item-title>
               </v-list-item>
-              <v-list-item @click="requestExport('json')" data-testid="export-json">
+              <v-list-item
+                data-testid="export-json"
+                @click="requestExport('json')"
+              >
                 <template #prepend>
                   <v-icon>mdi-code-json</v-icon>
                 </template>

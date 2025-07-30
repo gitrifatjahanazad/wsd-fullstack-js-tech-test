@@ -54,7 +54,7 @@ describe('Export Workflow E2E Tests', () => {
 
   beforeEach(async () => {
     const pinia = createPinia()
-    
+
     // Import the CSS-free Vuetify mock
     const { vuetify } = await import('../e2e-setup-complex.js')
 
@@ -400,7 +400,10 @@ describe('Export Workflow E2E Tests', () => {
     await wrapper.vm.$nextTick()
 
     // Manually call the export creation to simulate processing queued exports
-    await mockApiClient.createExport({ format: 'json', filters: { status: 'pending' } })
+    await mockApiClient.createExport({
+      format: 'json',
+      filters: { status: 'pending' }
+    })
 
     // Should process queued exports
     expect(mockApiClient.createExport).toHaveBeenCalled()
@@ -448,7 +451,9 @@ describe('Export Workflow E2E Tests', () => {
     expect(mockApiClient.getExports).toHaveBeenCalled()
 
     // Test view details interaction
-    const viewDetailsButton = wrapper.find('[data-testid="view-details-button"]')
+    const viewDetailsButton = wrapper.find(
+      '[data-testid="view-details-button"]'
+    )
     if (viewDetailsButton.exists()) {
       await viewDetailsButton.trigger('click')
       await wrapper.vm.$nextTick()
