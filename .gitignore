@@ -980,6 +980,7 @@ frontend/.vite/
 # Backend specific
 backend/logs/
 backend/uploads/
+backend/exports/
 
 # SonarQube
 .sonar/
