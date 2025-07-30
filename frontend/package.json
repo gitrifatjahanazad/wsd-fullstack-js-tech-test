@@ -9,6 +9,8 @@
     "preview": "vite preview",
     "test": "vitest",
     "test:coverage": "vitest --coverage",
+    "test:e2e": "vitest --config vitest.e2e.config.js",
+    "test:all": "npm run test && npm run test:e2e",
     "lint": "eslint . --ext .vue,.js,.jsx,.ts,.tsx --fix",
     "format": "prettier --write ."
   },
@@ -29,6 +31,7 @@
     "@vue/test-utils": "^2.4.6",
     "eslint": "^9.29.0",
     "eslint-plugin-vue": "^10.2.0",
+    "identity-obj-proxy": "^3.0.0",
     "jsdom": "^26.1.0",
     "prettier": "^3.5.3",
     "vite": "^6.3.5",

@@ -18,6 +18,7 @@
             variant="outlined"
             size="small"
             :disabled="!hasActiveFilters"
+            data-testid="clear-filters"
             @click="clearFilters"
           >
             <v-icon left>mdi-filter-remove</v-icon>
@@ -46,6 +47,7 @@
             :items="statusOptions"
             label="Status"
             clearable
+            data-testid="status-filter"
             @update:model-value="emitFiltersChanged"
           >
             <template #selection="{ item }">
@@ -65,6 +67,7 @@
             :items="priorityOptions"
             label="Priority"
             clearable
+            data-testid="priority-filter"
             @update:model-value="emitFiltersChanged"
           >
             <template #selection="{ item }">
@@ -84,6 +87,7 @@
             label="Search tasks..."
             prepend-inner-icon="mdi-magnify"
             clearable
+            data-testid="search-input"
             @update:model-value="debounceSearch"
           ></v-text-field>
         </v-col>
@@ -96,19 +100,20 @@
                 variant="elevated"
                 block
                 :disabled="!hasData"
+                data-testid="export-button"
               >
                 <v-icon left>mdi-download</v-icon>
                 Export
               </v-btn>
             </template>
             <v-list>
-              <v-list-item @click="requestExport('csv')">
+              <v-list-item @click="requestExport('csv')" data-testid="export-csv">
                 <template #prepend>
                   <v-icon>mdi-file-delimited</v-icon>
                 </template>
                 <v-list-item-title>Export as CSV</v-list-item-title>
               </v-list-item>
-              <v-list-item @click="requestExport('json')">
+              <v-list-item @click="requestExport('json')" data-testid="export-json">
                 <template #prepend>
                   <v-icon>mdi-code-json</v-icon>
                 </template>
