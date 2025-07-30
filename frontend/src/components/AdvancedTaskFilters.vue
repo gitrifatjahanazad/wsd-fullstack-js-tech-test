@@ -89,9 +89,9 @@
         </v-col>
         <v-col cols="12" md="2">
           <v-menu>
-            <template #activator="{ props }">
+            <template #activator="{ props: activatorProps }">
               <v-btn
-                v-bind="props"
+                v-bind="activatorProps"
                 color="primary"
                 variant="elevated"
                 block

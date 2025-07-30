@@ -5,6 +5,7 @@
  * @description Comprehensive export history interface with pagination, status tracking, and download functionality
  */
 -->
+<!-- eslint-disable vue/valid-v-slot -->
 
 <template>
   <div>

@@ -35,7 +35,9 @@ describe('ConnectionStatus', () => {
 
     expect(wrapper.text()).toContain('Connected')
     expect(wrapper.find('.connection-status').classes()).toContain('connected')
-    expect(wrapper.find('.connection-status').classes()).not.toContain('disconnected')
+    expect(wrapper.find('.connection-status').classes()).not.toContain(
+      'disconnected'
+    )
   })
 
   it('renders disconnected state correctly', () => {
@@ -48,8 +50,12 @@ describe('ConnectionStatus', () => {
     })
 
     expect(wrapper.text()).toContain('Disconnected')
-    expect(wrapper.find('.connection-status').classes()).toContain('disconnected')
-    expect(wrapper.find('.connection-status').classes()).not.toContain('connected')
+    expect(wrapper.find('.connection-status').classes()).toContain(
+      'disconnected'
+    )
+    expect(wrapper.find('.connection-status').classes()).not.toContain(
+      'connected'
+    )
   })
 
   it('shows correct icon for connected state', () => {

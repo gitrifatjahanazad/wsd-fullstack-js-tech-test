@@ -4,20 +4,13 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { mount } from '@vue/test-utils'
-import { createVuetify } from 'vuetify'
-import * as components from 'vuetify/components'
-import * as directives from 'vuetify/directives'
+import { vuetify } from '../setup.js'
 import AdvancedTaskFilters from '../../src/components/AdvancedTaskFilters.vue'
 
 // Mock lodash-es
 vi.mock('lodash-es', () => ({
   debounce: vi.fn((fn) => fn)
 }))
-
-const vuetify = createVuetify({
-  components,
-  directives
-})
 
 describe('AdvancedTaskFilters', () => {
   let wrapper

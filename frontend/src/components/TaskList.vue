@@ -156,31 +156,6 @@ const filters = reactive({
   sortOrder: 'desc'
 })
 
-const statusOptions = [
-  { title: 'Pending', value: 'pending' },
-  { title: 'In Progress', value: 'in-progress' },
-  { title: 'Completed', value: 'completed' }
-]
-
-const priorityOptions = [
-  { title: 'Low', value: 'low' },
-  { title: 'Medium', value: 'medium' },
-  { title: 'High', value: 'high' }
-]
-
-const sortOptions = [
-  { title: 'Created Date', value: 'createdAt' },
-  { title: 'Updated Date', value: 'updatedAt' },
-  { title: 'Title', value: 'title' },
-  { title: 'Priority', value: 'priority' },
-  { title: 'Status', value: 'status' }
-]
-
-const orderOptions = [
-  { title: 'Newest First', value: 'desc' },
-  { title: 'Oldest First', value: 'asc' }
-]
-
 function handleFiltersChanged(newFilters) {
   Object.assign(filters, newFilters)
   taskStore.updateFilters(filters)

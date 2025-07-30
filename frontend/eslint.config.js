@@ -18,7 +18,11 @@ export default [
         navigator: 'readonly',
         localStorage: 'readonly',
         sessionStorage: 'readonly',
-        fetch: 'readonly'
+        fetch: 'readonly',
+        setTimeout: 'readonly',
+        clearTimeout: 'readonly',
+        vi: 'readonly',
+        Event: 'readonly'
       }
     },
     rules: {

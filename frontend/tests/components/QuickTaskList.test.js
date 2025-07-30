@@ -23,7 +23,8 @@ const VIcon = {
 }
 const VList = { template: '<div class="v-list"><slot /></div>' }
 const VListItem = {
-  template: '<div class="v-list-item"><slot name="prepend" /><div><div>{{ title }}</div><div>{{ subtitle }}</div></div><slot name="append" /></div>',
+  template:
+    '<div class="v-list-item"><slot name="prepend" /><div><div>{{ title }}</div><div>{{ subtitle }}</div></div><slot name="append" /></div>',
   props: ['title', 'subtitle']
 }
 const VChip = {

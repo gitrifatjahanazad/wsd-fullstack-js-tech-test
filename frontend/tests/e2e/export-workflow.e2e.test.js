@@ -2,13 +2,11 @@
  * @fileoverview End-to-end tests for export workflow
  */
 
-import { describe, it, expect, beforeEach, afterEach } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'
-import { createVuetify } from 'vuetify'
-import * as components from 'vuetify/components'
-import * as directives from 'vuetify/directives'
+import { vuetify } from '../setup.js'
 import { createRouter, createWebHistory } from 'vue-router'
 
 // Components
@@ -41,11 +39,6 @@ const mockApiClient = {
 vi.mock('../../src/api/client.js', () => ({
   default: mockApiClient
 }))
-
-const vuetify = createVuetify({
-  components,
-  directives
-})
 
 const router = createRouter({
   history: createWebHistory(),
