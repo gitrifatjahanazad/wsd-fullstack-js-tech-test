@@ -62,6 +62,93 @@ router.get('/tasks', async (req, res, next) => {
       sortOrder = 'desc'
     } = req.query;
 
+    // Validate pagination parameters
+    const pageNum = parseInt(page);
+    const limitNum = parseInt(limit);
+
+    if (isNaN(pageNum) || pageNum < 1) {
+      return res.status(400).json({
+        success: false,
+        message: 'Page must be a positive integer'
+      });
+    }
+
+    if (isNaN(limitNum) || limitNum < 1 || limitNum > 100) {
+      return res.status(400).json({
+        success: false,
+        message: 'Limit must be an integer between 1 and 100'
+      });
+    }
+
+    // Validate status filter
+    if (status && status !== 'all' && !['pending', 'in-progress', 'completed'].includes(status)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Status must be one of: pending, in-progress, completed, all'
+      });
+    }
+
+    // Validate priority filter
+    if (priority && priority !== 'all' && !['low', 'medium', 'high'].includes(priority)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Priority must be one of: low, medium, high, all'
+      });
+    }
+
+    // Validate search parameter
+    if (search && search.length > 100) {
+      return res.status(400).json({
+        success: false,
+        message: 'Search query must be 100 characters or less'
+      });
+    }
+
+    // Validate date parameters
+    if (dateFrom && isNaN(Date.parse(dateFrom))) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid dateFrom format'
+      });
+    }
+
+    if (dateTo && isNaN(Date.parse(dateTo))) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid dateTo format'
+      });
+    }
+
+    if (completedDateFrom && isNaN(Date.parse(completedDateFrom))) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid completedDateFrom format'
+      });
+    }
+
+    if (completedDateTo && isNaN(Date.parse(completedDateTo))) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid completedDateTo format'
+      });
+    }
+
+    // Validate sorting parameters
+    const validSortFields = ['createdAt', 'updatedAt', 'title', 'priority', 'status'];
+    if (!validSortFields.includes(sortBy)) {
+      return res.status(400).json({
+        success: false,
+        message: `SortBy must be one of: ${validSortFields.join(', ')}`
+      });
+    }
+
+    if (!['asc', 'desc'].includes(sortOrder)) {
+      return res.status(400).json({
+        success: false,
+        message: 'SortOrder must be either asc or desc'
+      });
+    }
+
     const query = {};
 
     // Status filter
@@ -109,8 +196,8 @@ router.get('/tasks', async (req, res, next) => {
 
     const tasks = await Task.find(query)
       .sort(sort)
-      .limit(limit * 1)
-      .skip((page - 1) * limit)
+      .limit(limitNum)
+      .skip((pageNum - 1) * limitNum)
       .lean() // Use lean queries for better performance
       .exec();
 
@@ -121,10 +208,10 @@ router.get('/tasks', async (req, res, next) => {
       data: {
         tasks,
         pagination: {
-          page: parseInt(page),
-          limit: parseInt(limit),
+          page: pageNum,
+          limit: limitNum,
           total,
-          pages: Math.ceil(total / limit)
+          pages: Math.ceil(total / limitNum)
         },
         filters: {
           status,
@@ -152,6 +239,14 @@ router.get('/tasks', async (req, res, next) => {
 router.get('/tasks/:id', async (req, res, next) => {
   try {
     const { id } = req.params;
+
+    // Validate MongoDB ObjectId
+    if (!id.match(/^[0-9a-fA-F]{24}$/)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid task ID format'
+      });
+    }
 
     const cacheKey = `task:${id}`;
     const cached = await redisClient.get(cacheKey);
@@ -198,9 +293,52 @@ router.post('/tasks', async (req, res, next) => {
   try {
     const { title, description, priority, estimatedTime } = req.body;
 
+    // Input validation
+    if (!title || typeof title !== 'string' || title.trim().length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Title is required and must be a non-empty string'
+      });
+    }
+
+    if (title.trim().length > 200) {
+      return res.status(400).json({
+        success: false,
+        message: 'Title must be 200 characters or less'
+      });
+    }
+
+    if (description && typeof description !== 'string') {
+      return res.status(400).json({
+        success: false,
+        message: 'Description must be a string'
+      });
+    }
+
+    if (description && description.length > 1000) {
+      return res.status(400).json({
+        success: false,
+        message: 'Description must be 1000 characters or less'
+      });
+    }
+
+    if (priority && !['low', 'medium', 'high'].includes(priority)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Priority must be one of: low, medium, high'
+      });
+    }
+
+    if (estimatedTime && (!Number.isInteger(estimatedTime) || estimatedTime < 0)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Estimated time must be a non-negative integer'
+      });
+    }
+
     const task = new Task({
-      title,
-      description,
+      title: title.trim(),
+      description: description ? description.trim() : description,
       priority,
       estimatedTime
     });
@@ -236,6 +374,77 @@ router.put('/tasks/:id', async (req, res, next) => {
   try {
     const { id } = req.params;
     const updates = req.body;
+
+    // Validate MongoDB ObjectId
+    if (!id.match(/^[0-9a-fA-F]{24}$/)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid task ID format'
+      });
+    }
+
+    // Input validation for updates
+    if (updates.title !== undefined) {
+      if (!updates.title || typeof updates.title !== 'string' || updates.title.trim().length === 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'Title must be a non-empty string'
+        });
+      }
+      if (updates.title.trim().length > 200) {
+        return res.status(400).json({
+          success: false,
+          message: 'Title must be 200 characters or less'
+        });
+      }
+      updates.title = updates.title.trim();
+    }
+
+    if (updates.description !== undefined) {
+      if (updates.description && typeof updates.description !== 'string') {
+        return res.status(400).json({
+          success: false,
+          message: 'Description must be a string'
+        });
+      }
+      if (updates.description && updates.description.length > 1000) {
+        return res.status(400).json({
+          success: false,
+          message: 'Description must be 1000 characters or less'
+        });
+      }
+      if (updates.description) {
+        updates.description = updates.description.trim();
+      }
+    }
+
+    if (updates.priority !== undefined && !['low', 'medium', 'high'].includes(updates.priority)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Priority must be one of: low, medium, high'
+      });
+    }
+
+    if (updates.status !== undefined && !['pending', 'in-progress', 'completed'].includes(updates.status)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Status must be one of: pending, in-progress, completed'
+      });
+    }
+
+    if (updates.estimatedTime !== undefined && (!Number.isInteger(updates.estimatedTime) || updates.estimatedTime < 0)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Estimated time must be a non-negative integer'
+      });
+    }
+
+    // Set completedAt when status changes to completed
+    if (updates.status === 'completed') {
+      updates.completedAt = new Date();
+    } else if (updates.status && updates.status !== 'completed') {
+      updates.completedAt = null;
+    }
 
     const task = await Task.findByIdAndUpdate(
       id,
@@ -278,6 +487,14 @@ router.put('/tasks/:id', async (req, res, next) => {
 router.delete('/tasks/:id', async (req, res, next) => {
   try {
     const { id } = req.params;
+
+    // Validate MongoDB ObjectId
+    if (!id.match(/^[0-9a-fA-F]{24}$/)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid task ID format'
+      });
+    }
 
     const task = await Task.findByIdAndDelete(id);
 
@@ -380,7 +597,25 @@ router.get('/exports', async (req, res, next) => {
   try {
     const { page = 1, limit = 10 } = req.query;
 
-    const result = await ExportService.getExportHistory({ page, limit });
+    // Validate pagination parameters
+    const pageNum = parseInt(page);
+    const limitNum = parseInt(limit);
+
+    if (isNaN(pageNum) || pageNum < 1) {
+      return res.status(400).json({
+        success: false,
+        message: 'Page must be a positive integer'
+      });
+    }
+
+    if (isNaN(limitNum) || limitNum < 1 || limitNum > 100) {
+      return res.status(400).json({
+        success: false,
+        message: 'Limit must be an integer between 1 and 100'
+      });
+    }
+
+    const result = await ExportService.getExportHistory({ page: pageNum, limit: limitNum });
 
     res.json({
       success: true,
@@ -401,6 +636,14 @@ router.get('/exports', async (req, res, next) => {
 router.get('/exports/:id', async (req, res, next) => {
   try {
     const { id } = req.params;
+
+    // Validate MongoDB ObjectId
+    if (!id.match(/^[0-9a-fA-F]{24}$/)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid export ID format'
+      });
+    }
 
     const exportJob = await Export.findById(id);
 
@@ -430,6 +673,14 @@ router.get('/exports/:id', async (req, res, next) => {
 router.get('/exports/:id/download', async (req, res, next) => {
   try {
     const { id } = req.params;
+
+    // Validate MongoDB ObjectId
+    if (!id.match(/^[0-9a-fA-F]{24}$/)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid export ID format'
+      });
+    }
 
     const fileInfo = await ExportService.getExportFile(id);
 

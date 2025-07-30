@@ -13,31 +13,29 @@ import { createRouter, createWebHistory } from 'vue-router'
 import App from '../../src/App.vue'
 import Tasks from '../../src/views/Tasks.vue'
 import Exports from '../../src/views/Exports.vue'
+import apiClient from '../../src/api/client.js'
+import socket from '../../src/plugins/socket.js'
 
 // Mock Socket.IO
-const mockSocket = {
-  connected: true,
-  connect: vi.fn(),
-  disconnect: vi.fn(),
-  emit: vi.fn(),
-  on: vi.fn(),
-  off: vi.fn()
-}
-
 vi.mock('../../src/plugins/socket.js', () => ({
-  default: mockSocket
+  default: {
+    connected: true,
+    connect: vi.fn(),
+    disconnect: vi.fn(),
+    emit: vi.fn(),
+    on: vi.fn(),
+    off: vi.fn()
+  }
 }))
 
 // Mock API client
-const mockApiClient = {
-  getTasks: vi.fn(),
-  createExport: vi.fn(),
-  getExports: vi.fn(),
-  getAnalytics: vi.fn()
-}
-
 vi.mock('../../src/api/client.js', () => ({
-  default: mockApiClient
+  default: {
+    getTasks: vi.fn(),
+    createExport: vi.fn(),
+    getExports: vi.fn(),
+    getAnalytics: vi.fn()
+  }
 }))
 
 const router = createRouter({
@@ -62,7 +60,7 @@ describe('Export Workflow E2E Tests', () => {
     app.use(pinia)
 
     // Mock API responses
-    mockApiClient.getTasks.mockResolvedValue({
+    apiClient.getTasks.mockResolvedValue({
       data: {
         tasks: [
           {
@@ -95,7 +93,7 @@ describe('Export Workflow E2E Tests', () => {
       }
     })
 
-    mockApiClient.getAnalytics.mockResolvedValue({
+    apiClient.getAnalytics.mockResolvedValue({
       data: {
         totalTasks: 2,
         tasksByStatus: { pending: 1, 'in-progress': 0, completed: 1 },
@@ -128,7 +126,7 @@ describe('Export Workflow E2E Tests', () => {
     await wrapper.vm.$nextTick()
 
     // Verify tasks are loaded
-    expect(mockApiClient.getTasks).toHaveBeenCalled()
+    expect(apiClient.getTasks).toHaveBeenCalled()
 
     // Find and interact with advanced filters
     const statusSelect = wrapper.find('[label="Status"]')
@@ -138,7 +136,7 @@ describe('Export Workflow E2E Tests', () => {
       await wrapper.vm.$nextTick()
 
       // Verify filtered API call
-      expect(mockApiClient.getTasks).toHaveBeenCalledWith(
+      expect(apiClient.getTasks).toHaveBeenCalledWith(
         expect.objectContaining({
           status: 'completed'
         })
@@ -146,7 +144,7 @@ describe('Export Workflow E2E Tests', () => {
     }
 
     // Mock export creation
-    mockApiClient.createExport.mockResolvedValue({
+    apiClient.createExport.mockResolvedValue({
       data: {
         _id: 'export123',
         format: 'csv',
@@ -169,7 +167,7 @@ describe('Export Workflow E2E Tests', () => {
         await wrapper.vm.$nextTick()
 
         // Verify export API call
-        expect(mockApiClient.createExport).toHaveBeenCalledWith({
+        expect(apiClient.createExport).toHaveBeenCalledWith({
           format: 'csv',
           filters: expect.objectContaining({
             status: 'completed'
@@ -179,7 +177,7 @@ describe('Export Workflow E2E Tests', () => {
     }
 
     // Simulate real-time export progress
-    const exportUpdateHandler = mockSocket.on.mock.calls.find(
+    const exportUpdateHandler = socket.on.mock.calls.find(
       (call) => call[0] === 'export-update'
     )?.[1]
 
@@ -207,7 +205,7 @@ describe('Export Workflow E2E Tests', () => {
     await wrapper.vm.$nextTick()
 
     // Mock exports history
-    mockApiClient.getExports.mockResolvedValue({
+    apiClient.getExports.mockResolvedValue({
       data: {
         exports: [
           {
@@ -230,7 +228,7 @@ describe('Export Workflow E2E Tests', () => {
     })
 
     // Verify exports are loaded
-    expect(mockApiClient.getExports).toHaveBeenCalled()
+    expect(apiClient.getExports).toHaveBeenCalled()
   })
 
   it('should handle filter changes and update UI accordingly', async () => {
@@ -243,7 +241,7 @@ describe('Export Workflow E2E Tests', () => {
       await prioritySelect.vm.$emit('update:model-value', 'high')
       await wrapper.vm.$nextTick()
 
-      expect(mockApiClient.getTasks).toHaveBeenCalledWith(
+      expect(apiClient.getTasks).toHaveBeenCalledWith(
         expect.objectContaining({
           priority: 'high'
         })
@@ -259,7 +257,7 @@ describe('Export Workflow E2E Tests', () => {
       // Should call API after debounce
       await new Promise((resolve) => setTimeout(resolve, 600))
 
-      expect(mockApiClient.getTasks).toHaveBeenCalledWith(
+      expect(apiClient.getTasks).toHaveBeenCalledWith(
         expect.objectContaining({
           search: 'important'
         })
@@ -272,7 +270,7 @@ describe('Export Workflow E2E Tests', () => {
       await clearButton.trigger('click')
       await wrapper.vm.$nextTick()
 
-      expect(mockApiClient.getTasks).toHaveBeenCalledWith(
+      expect(apiClient.getTasks).toHaveBeenCalledWith(
         expect.objectContaining({
           status: '',
           priority: '',
@@ -287,7 +285,7 @@ describe('Export Workflow E2E Tests', () => {
     await wrapper.vm.$nextTick()
 
     // Trigger export
-    mockApiClient.createExport.mockResolvedValue({
+    apiClient.createExport.mockResolvedValue({
       data: {
         _id: 'export456',
         format: 'json',
@@ -311,7 +309,7 @@ describe('Export Workflow E2E Tests', () => {
     }
 
     // Simulate real-time updates
-    const exportUpdateHandler = mockSocket.on.mock.calls.find(
+    const exportUpdateHandler = socket.on.mock.calls.find(
       (call) => call[0] === 'export-update'
     )?.[1]
 
@@ -388,7 +386,7 @@ describe('Export Workflow E2E Tests', () => {
     await wrapper.vm.$nextTick()
 
     // Should process queued exports
-    expect(mockApiClient.createExport).toHaveBeenCalled()
+    expect(apiClient.createExport).toHaveBeenCalled()
   })
 
   it('should validate export history interactions', async () => {
@@ -396,7 +394,7 @@ describe('Export Workflow E2E Tests', () => {
     await wrapper.vm.$nextTick()
 
     // Mock detailed export history
-    mockApiClient.getExports.mockResolvedValue({
+    apiClient.getExports.mockResolvedValue({
       data: {
         exports: [
           {
@@ -427,7 +425,7 @@ describe('Export Workflow E2E Tests', () => {
     })
 
     // Verify history loads
-    expect(mockApiClient.getExports).toHaveBeenCalled()
+    expect(apiClient.getExports).toHaveBeenCalled()
 
     // Test view details interaction
     const viewDetailsButton = wrapper.find('button[aria-label="View Details"]')
@@ -447,7 +445,7 @@ describe('Export Workflow E2E Tests', () => {
       await wrapper.vm.$nextTick()
 
       // Should call API with page 2
-      expect(mockApiClient.getExports).toHaveBeenCalledWith(
+      expect(apiClient.getExports).toHaveBeenCalledWith(
         expect.objectContaining({
           page: 2
         })

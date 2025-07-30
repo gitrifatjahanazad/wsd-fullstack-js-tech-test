@@ -286,6 +286,11 @@ export const useExportStore = defineStore('exports', () => {
    * @returns {string} Formatted filter description
    */
   function formatFilters(filters) {
+    // Handle undefined or null filters
+    if (!filters || typeof filters !== 'object') {
+      return 'No filters applied'
+    }
+
     const parts = []
 
     if (filters.status && filters.status !== 'all') {
